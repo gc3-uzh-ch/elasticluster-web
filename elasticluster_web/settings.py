@@ -3,6 +3,13 @@ import os
 import socket
 
 
+# elasticluster specific settings
+USER_HOME_PATH = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'user_home'))
+CONFIG_TEMPLATE_PATH = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'user_home', 'template', 'config'))
+
+
+# django settings
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 

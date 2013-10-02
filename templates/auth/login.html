@@ -4,22 +4,39 @@
 {% block title %}Login{% endblock %}
 
 {% block account %}
-<form class="navbar-form navbar-right pull-right" method="post" action="{% url 'django.contrib.auth.views.login' %}">
-    {% csrf_token %}
-    <div class="form-group">
-        <input type="text" placeholder="Username" name="username" class="form-control">
+    <div class="ui stackable grid">
+        <div class="four wide column">
+            <div class="header item"><i class="cloud icon"></i> elasticluster</div>
+        </div>
+        <div class="five wide column">
+            {% if form.errors %}
+                <div class="">
+                    <p>Your username and password didn't match. Please try again.</p>
+                </div>
+            {% endif %}
+        </div>
+        <div class="right floated seven wide column">
+            <div class="ui middle aligned">
+                <form method="post" action="{% url 'django.contrib.auth.views.login' %}">
+                    {% csrf_token %}
+                    <div class="ui mini labeled input">
+                        <input type="text" name="username" placeholder="Username">
+                        <div class="ui corner label">
+                            <i class="user icon"></i>
+                        </div>
+                    </div>
+                    <div class="ui mini icon input">
+                        <input type="password" placeholder="Password" name="password">
+                        <div class="ui corner label">
+                            <i class="asterisk icon"></i>
+                        </div>
+                    </div>
+                    <input type="hidden" name="next" value="{% if next %}{{ next }}{% else %}/{% endif %}" />
+                    <button type="submit" class="ui mini submit button">Login</div>
+                </form>
+            </div>
+        </div>
     </div>
-    <div class="form-group">
-        <input type="password" placeholder="Password" name="password" class="form-control">
-    </div>
-    <input type="hidden" name="next" value="{% if next %}{{ next }}{% else %}/{% endif %}" />
-    <button type="submit" class="btn btn-success">Sign in</button>
-</form>
-{% if form.errors %}
-    <div class="alert alert-danger pull-right">
-        <p>Your username and password didn't match. Please try again.</p>
-    </div>
-{% endif %}
 {% endblock %}
 
 {% block navigation %}
@@ -27,21 +44,23 @@
 {% endblock %}
 
 {% block body %}
-    <!-- Main jumbotron for a primary marketing message or call to action -->
-    <div class="jumbotron">
+    <div class="ui blue inverted segment" style="margin-top:42px;">
         <div class="container">
             <h1>Elasticluster</h1>
-            <p>aims to provide a user-friendly tool to create, manage and setup computing clusters hosted on
-                cloud infrastructures like <a href="http://aws.amazon.com/ec2/" target="_blank">Amazon's Elastic Compute
-                    Cloud EC2</a>,
-                <a href="https://cloud.google.com/products/compute-engine"
-                   target="_blank">Google Compute Engine</a> or a private <a href="http://www.openstack.org/" target="_blank">OpenStack</a> cloud).
-                Its main goal is to get your compute cluster up and running with just a few clicks.</p>
+            <div class="sub header">
+                <p>aims to provide a user-friendly tool to create, manage and setup computing clusters hosted on
+                    cloud infrastructures like <a href="http://aws.amazon.com/ec2/" target="_blank">Amazon's Elastic Compute
+                        Cloud EC2</a>,
+                    <a href="https://cloud.google.com/products/compute-engine"
+                       target="_blank">Google Compute Engine</a> or a private <a href="http://www.openstack.org/" target="_blank">OpenStack</a> cloud).
+                    Its main goal is to get your compute cluster up and running with just a few clicks.</p>
+            </div>
         </div>
     </div>
+
     <div class="container">
-        <div class="row">
-            <div class="col-lg-6">
+        <div class="ui two column stackable grid">
+            <div class="column">
                 <h2>How it works</h2>
                 <p>The architecture of elasticluster is quite simple: a configuration file defines a set of cluster
                     configurations and information on how to access a specific cloud webservice.</p>
@@ -51,7 +70,7 @@
 
                 <p>After all the virtual machines are up and running, elasticluster will use ansible to configure them.</p>
             </div>
-            <div class="col-lg-6">
+            <div class="column">
                 <h2>Features</h2>
                 <p>elasticluster offers the following features at the current state:
                 <ul>

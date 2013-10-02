@@ -6,4 +6,13 @@
 {% block content %}
     <h1>Dashboard</h1>
     <p>Welcome to the elasticluster web interface.</p>
+
+    {% if settings_warning == True %}
+        <div class="alert alert-warning">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <h4>Warning!</h4>
+            Your settings are not complete yet, you might have to enter your secret keys to access a cloud provider.
+            Please check the <a href="{% url 'settings' %}">settings page</a>
+        </div>
+    {% endif %}
 {% endblock %}

@@ -20,3 +20,4 @@ __author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>, Antonio Messina <antonio.s.mes
 
 
 from django.db import models
+

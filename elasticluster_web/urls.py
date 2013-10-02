@@ -38,4 +38,10 @@ urlpatterns = patterns('',
     # home
     url(r'^$', 'elasticluster_base.views.index', name='index'),
 
+    # cluster
+    url(r'^start$', 'elasticluster_base.views.start_cluster', name="start"),
+
+    # settings
+    url(r'^settings$', 'elasticluster_base.views.settings', name="settings"),
+
 )

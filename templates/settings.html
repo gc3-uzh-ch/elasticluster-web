@@ -1,0 +1,22 @@
+{% extends 'layout.html' %}
+
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+    <h1>Settings</h1>
+
+    <form action="{% url 'settings' %}" method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+            {% for form in formset %}
+                <div class="ui form segment">
+                    <h3>{{ form.cloud_name.value }}</h3>
+                    {{ form }}
+                </div>
+            {% endfor %}
+        <input type="submit" class="ui button" value="Submit" />
+    </form>
+
+
+{% endblock %}
