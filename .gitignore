@@ -5,3 +5,4 @@ local_settings.py
 /elasticluster_web/hosts/host_nicolasmac.py
 .idea
 *.iml
+/elasticluster-web/user_home

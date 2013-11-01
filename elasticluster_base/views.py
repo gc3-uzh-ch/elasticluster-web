@@ -17,71 +17,130 @@
 #
 __author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>, Antonio Messina <antonio.s.messina@gmail.com>'
 
-from django.forms.formsets import formset_factory
+from django.core.urlresolvers import reverse
+from django.core import serializers
 from django.contrib.auth.decorators import login_required
+from django.forms.formsets import formset_factory
 from django.shortcuts import render
+from django.views.generic.base import View
+from django.utils.decorators import method_decorator
+from django.http.response import HttpResponse, Http404
 
-from elasticluster_base.forms import CloudProviderForm, ClusterForm
-from elasticluster_base.service import UserService, ConfigService
-
-
-@login_required
-def index(request):
-    user = request.user
-    user_service = UserService(user)
-    settings_warning = not user_service.check_user_settings()
-    context = {'settings_warning': settings_warning}
-    return render(request, 'index.html', context)
-
-
-@login_required
-def settings(request):
-    user = request.user
-    user_service = UserService(user)
-    config_service = user_service.get_configuration_service()
-
-    if request.method == 'POST':
-        cloud_formset = formset_factory(CloudProviderForm)
-        formset = cloud_formset(request.POST, request.FILES)
-        if formset.is_valid():
-            # save the values back and print a message
-            if formset.has_changed():
-                conf = dict()
-                for form in formset:
-                    data = form.cleaned_data
-                    config_service.save_cloud_configuration(data['cloud_name'], **data)
-
-
-    else:
-        clouds = config_service.get_cloud_configurations()
-        form_init = list()
-        for cloud, settings in clouds.iteritems():
-            cloud_dict = dict()
-            cloud_dict['cloud_name'] = cloud
-            cloud_dict['ec2_access_key'] = settings['ec2_access_key']
-            cloud_dict['ec2_secret_key'] = settings['ec2_secret_key']
-            form_init.append(cloud_dict)
-
-        cloud_formset = formset_factory(CloudProviderForm, max_num=len(form_init))
-        formset = cloud_formset(initial=form_init)
-
-    context = {'formset': formset}
-    return render(request, 'settings.html', context)
+from elasticluster_base.forms import StartClusterTopForm, UserCloudServiceForm
+from elasticluster_base.service import UserService, ElasticlusterProxy
+from elasticluster_base.models import CloudService, ClusterNodeGroup, ClusterTemplate, UserCloudService, Cluster, ClusterNode
 
 
 def login(request):
     return render(request, 'auth/login.html', None)
 
-
-def start_cluster(request):
+@login_required
+def index(request):
     user = request.user
     user_service = UserService(user)
-    config_service = user_service.get_configuration_service()
+    elasticluster = ElasticlusterProxy(user_service)
+    elasticluster.create_config()
+    context = {}
+    return render(request, 'index.html', context)
 
-    cluster_conf = config_service.get_cluster_configurations()
 
-    form = ClusterForm(cluster_conf)
+class StartCluster(View):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(StartCluster, self).dispatch(*args, **kwargs)
+
+    def get(self, request):
+        start_form = StartClusterTopForm()
+        credentials_form = UserCloudServiceForm()
+        context = {'top_form': start_form, 'cred_form': credentials_form}
+        return render(request, 'start.html', context)
+
+    def post(self, request):
+        name = request.POST['name']
+        cloud_id = request.POST['cloud']
+        cluster_template_id = request.POST['cluster']
+        image = request.POST['image']
+        flavor = request.POST['flavor']
+        security_group = request.POST['security_group']
+        image_user = request.POST['image_user']
+
+        cloud = UserCloudService.objects.get(cloud_service__id=cloud_id)
+        cluster_template = ClusterTemplate.objects.get(id=cluster_template_id)
+
+        cluster = Cluster()
+        cluster.user = request.user
+        cluster.cloud_service = cloud
+        cluster.cluster_template = cluster_template
+        cluster.name = name
+        cluster.flavor = flavor
+        cluster.image = image
+        cluster.security_group = security_group
+        cluster.image_user = image_user
+
+        cluster.save()
+
+        node_groups = ClusterNodeGroup.objects.filter(cluster_template__id=cluster_template_id)
+        for group in node_groups:
+            node = ClusterNode()
+            node.node_group = group
+            node.value = request.POST[group.ansible_name]
+            node.cluster = cluster
+            node.save()
+
+        return HttpResponse("")
 
 
-    context = {'form': form}
-    return render(request, 'start.html', context)
+class StartClusterCloudCheck(View):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(StartClusterCloudCheck, self).dispatch(*args, **kwargs)
+
+    def post(self, request):
+        id = request.POST['id']
+
+        user_cloud = None
+        cloud = None
+        if id:
+            cloud = CloudService.objects.get(id=id)
+            if cloud:
+                try:
+                    user_cloud = UserCloudService.objects.get(cloud_service__id=id)
+                except Exception as e:  # todo: figure out which error to except.
+                    user_cloud = ""
+                if user_cloud:
+                    cloud_json = serializers.serialize('json', [cloud])
+                    user_cloud_json = serializers.serialize('json', [user_cloud])
+                    context = '{"cloud_service": %s, "user_cloud": %s}' % (cloud_json, user_cloud_json)
+
+                    return HttpResponse(context)
+
+        if cloud:
+            cloud_json = serializers.serialize('json', [cloud])
+        else:
+            cloud_json = ""
+        return HttpResponse('{"user_cloud":"", "cloud_service": %s}' % cloud_json)
+
+
+class CloudServiceCredentials(View):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(CloudServiceCredentials, self).dispatch(*args, **kwargs)
+
+    def post(self, request, cloud_id):
+        form = UserCloudServiceForm(request.POST)
+        form.instance.user_id = request.user.id
+        form.instance.user = request.user
+        form.save()
+
+        return HttpResponse('{"error":false}')
+
+
+class StartClusterNodeOptions(View):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(StartClusterNodeOptions, self).dispatch(*args, **kwargs)
+
+    def get(self, request, cluster_template_id):
+        nodes = ClusterNodeGroup.objects.filter(cluster_template__id=cluster_template_id)
+
+        return HttpResponse(serializers.serialize("json", nodes))

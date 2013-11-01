@@ -15,34 +15,28 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from django.db.models.fields import DecimalField
-
 __author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>'
 
 from django import forms
+from django.forms.models import ModelForm
+
+from elasticluster_base.models import CloudService, ClusterTemplate, \
+    UserCloudService
 
 
-class CloudProviderForm(forms.Form):
-    cloud_name = forms.CharField(widget=forms.HiddenInput)
-    ec2_access_key = forms.CharField()
-    ec2_secret_key = forms.CharField()
+class StartClusterTopForm(forms.Form):
+    name = forms.CharField(required=True)
+    cloud = forms.ModelChoiceField(
+        queryset=CloudService.objects.all().order_by('name'), required=True)
+    cluster = forms.ModelChoiceField(
+        queryset=ClusterTemplate.objects.all().order_by('name'), required=True)
 
 
-class ClusterForm(forms.Form):
-    name = forms.CharField()
-    cluster = forms.ChoiceField()
-    flavor = forms.CharField()
-    image = forms.CharField()
-
-    def __init__(self, cluster_conf, *args, **kwargs):
-        super(ClusterForm, self).__init__(*args, **kwargs)
-        clusters = []
-        for cluster, properties in cluster_conf.iteritems():
-            clusters.append((cluster, cluster))
-
-            for key, property in properties.iteritems():
-                if '_node' in key:
-                    self.fields['cluster_nodes_%s_%s' % (cluster, key)] = forms.DecimalField()
-                    pass
-
-        self.fields['cluster'] = forms.ChoiceField(choices=clusters)
+class UserCloudServiceForm(ModelForm):
+    class Meta:
+        model = UserCloudService
+        exclude = ['user', ]
+        widgets = {
+            'ec2_access_key': forms.PasswordInput(),
+            'ec2_secret_key': forms.PasswordInput(),
+        }

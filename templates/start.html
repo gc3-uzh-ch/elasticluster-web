@@ -1,44 +1,116 @@
 {% extends 'layout.html' %}
+{% load widget_tweaks %}
 
 
 {% block title %}Start Cluster{% endblock %}
 
 {% block content %}
     <h1>Start Cluster</h1>
-    <p>Start a cluster...</p>
+    <p>Please fill out the following form to start a cluster of your choice.</p>
 
-    <form action="/contact/" method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <input type="submit" value="Submit" />
-    </form>
+    <div ng-controller="StartClusterCtrl">
+        <form action="{% url 'start' %}" method="post">{% csrf_token %}
+            {{ top_form.non_field_errors }}
 
+            <div class="ui form segment">
+                <div class="field">
+                    <label>Cluster Name</label>
+                    {{ top_form.name|attr:"required" }}
+                </div>
 
-{% endblock %}
+                <div class="field">
+                    <label>Cloud</label>
+                    {{ top_form.cloud|attr:"ng-change:update_cloud_provider()"|attr:"ng-model:form.cloud_provider"|attr:"required" }}
+                    <div ng-show="invalid_cloud_cred">
+                        Please provide credentials <a ng-click="enter_cloud_credentials()" class="ui red small label">here</a>
+                    </div>
+                </div>
 
-{% block js %}
-    <script>
-        function show_cluster_node_options(){
-            // get current cluster value
-            var cluster = $('select#id_cluster').val();
+                <div class="field">
+                    <label>Cluster</label>
+                    {{ top_form.cluster|attr:"ng-model:form.cluster"|attr:"ng-change:cluster_update()"|attr:"required" }}
+                </div>
+                <div ng-if="!form.cluster" id="cluster_spec" class="">Please select the cluster type in order to get more options.</div>
 
-            // hide all fields
-            node_name = "id_cluster_nodes";
-            $('input[id^='+node_name+'], label[for^='+node_name+']').each(function(){
-                var node = $(this);
+                <!-- nodes: this will be rendered upon cluster selection -->
+                <div class="field" ng-repeat="node in form.nodes">
+                    <label>{[node.fields.name]}</label>
+                    <div class="ui left labeled icon input">
+                        <input name="{[node.fields.ansible_name]}" type="text" value="{[node.fields.default_value]}">
+                        <i class="desktop icon"></i>
+                    </div>
+                </div>
 
-                id_text = node_name + "_" + cluster + "_";
-                if((this.id != null && this.id.indexOf(id_text) != -1) || (this.htmlFor != null && this.htmlFor.indexOf(id_text) != -1)){
-                    node.show();
-                } else{
-                    node.hide();
-                }
-            });
-        }
+                <!-- advanced options -->
+                <div ng-if="form.cluster" style="margin-top:50px;">
+                    <a href="" ng-show="!advanced_options" ng-click="advanced_options=!advanced_options">See advanced options</a>
+                    <div ng-show="advanced_options">
+                        <label>Flavor</label>
+                        <div class="ui left labeled input">
+                            <input name="flavor" type="text" value="{[form.flavor]}">
+                        </div>
+                    </div>
+                    <div ng-show="advanced_options">
+                        <label>Image ID</label>
+                        <div class="ui left labeled input">
+                            <input name="image" type="text" value="{[form.image]}">
+                        </div>
+                    </div>
 
-        show_cluster_node_options();
-        $('select#id_cluster').change(function(){
-            show_cluster_node_options();
-        });
-    </script>
+                    <div ng-show="advanced_options">
+                        <label>Security Group</label>
+                        <div class="ui left labeled input">
+                            <input name="security_group" type="text" value="{[form.security_group]}">
+                        </div>
+                    </div>
+
+                    <div ng-show="advanced_options">
+                        <label>Image User</label>
+                        <div class="ui left labeled input">
+                            <input name="image_user" type="text" value="{[form.image_user]}">
+                        </div>
+                    </div>
+                </div>
+                <div class="controls" style="margin-top: 50px;">
+                    <input type="submit" class="ui blue submit button" />
+                </div>
+            </div>
+        </form>
+
+        <!-- modal panel to enter cloud provider credentials -->
+        <div id="credentials_modal" class="ui modal">
+            <form name="cred_form" ng-submit="submit_cloud_credentials()" id="cred_form">{% csrf_token %}
+                <div class="ui form segment">
+                    <div class="field">
+                        <label>Cloud</label>
+                        <div class="ui left labeled input">
+                            {{ cred_form.cloud_service|attr:"ng-model:cred_form.cloud_service"|attr:"required"|attr:"min:0" }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>EC2 Access Key</label>
+                        <div class="ui left labeled icon input">
+                            {{ cred_form.ec2_access_key|attr:"ng-model:cred_form.ec2_access_key"|attr:"required" }}
+                            <i class="lock icon"></i>
+                            <div class="ui corner label">
+                                <i class="icon asterisk"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>EC2 Secret Key</label>
+                        <div class="ui left labeled icon input">
+                            {{ cred_form.ec2_secret_key|attr:"ng-model:cred_form.ec2_secret_key"|attr:"required" }}
+                            <i class="lock icon"></i>
+                            <div class="ui corner label">
+                                <i class="icon asterisk"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="submit" class="ui blue button">
+                    </input>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}

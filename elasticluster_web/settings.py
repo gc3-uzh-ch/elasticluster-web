@@ -5,7 +5,6 @@ import socket
 
 # elasticluster specific settings
 USER_HOME_PATH = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'user_home'))
-CONFIG_TEMPLATE_PATH = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'user_home', 'template', 'config'))
 
 
 # django settings
@@ -21,13 +20,12 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'elasticluster',                      # Or path to database file if using sqlite3.
-        # The following settings are not used with sqlite3:
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'elasticluster',
         'USER': 'user',
         'PASSWORD': 'password',
-        'HOST': '0.0.0.0',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
-        'PORT': '',                      # Set to empty string for default.
+        'HOST': '0.0.0.0',
+        'PORT': '',
     }
 }
 
@@ -132,6 +130,9 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
     'elasticluster_base',
+    # Database migration tool
+    'south',
+    'widget_tweaks',
 )
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'

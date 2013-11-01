@@ -15,12 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-__author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>, Antonio Messina <antonio.s.messina@gmail.com>'
+__author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>'
 
 
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
 
+from elasticluster_base.views import StartCluster, StartClusterCloudCheck, CloudServiceCredentials, StartClusterNodeOptions
 
 admin.autodiscover()
 
@@ -38,10 +39,11 @@ urlpatterns = patterns('',
     # home
     url(r'^$', 'elasticluster_base.views.index', name='index'),
 
-    # cluster
-    url(r'^start$', 'elasticluster_base.views.start_cluster', name="start"),
+    # start cluster
+    url(r'^start/cluster/new$', StartCluster.as_view(), name="start"),
+    url(r'^start/cloud/check$', StartClusterCloudCheck.as_view(), name="start_cloud_check"),
+    url(r'^start/cloud/cred/(?P<cloud_id>\d+)$', CloudServiceCredentials.as_view(), name="cloud_cred_form"),
+    url(r'^start/cloud/cluster_type/(?P<cluster_template_id>\d+)$', StartClusterNodeOptions.as_view(), name="cluster_node_options"),
 
-    # settings
-    url(r'^settings$', 'elasticluster_base.views.settings', name="settings"),
 
 )

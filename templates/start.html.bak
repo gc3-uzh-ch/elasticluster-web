@@ -1,0 +1,44 @@
+{% extends 'layout.html' %}
+
+
+{% block title %}Start Cluster{% endblock %}
+
+{% block content %}
+    <h1>Start Cluster</h1>
+    <p>Start a cluster...</p>
+
+    <form action="{% url 'start' %}" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Submit" />
+    </form>
+
+
+{% endblock %}
+
+{% block js %}
+    <script>
+        function show_cluster_node_options(){
+            // get current cluster value
+            var cluster = $('select#id_cluster').val();
+
+            // hide all fields
+            node_name = "id_cluster_nodes";
+            $('input[id^='+node_name+'], label[for^='+node_name+']').each(function(){
+                var node = $(this);
+
+                id_text = node_name + "_" + cluster + "_";
+                if((this.id != null && this.id.indexOf(id_text) != -1) || (this.htmlFor != null && this.htmlFor.indexOf(id_text) != -1)){
+                    node.show();
+                } else{
+                    node.hide();
+                }
+            });
+        }
+
+        show_cluster_node_options();
+        $('select#id_cluster').change(function(){
+            show_cluster_node_options();
+        });
+    </script>
+{% endblock %}

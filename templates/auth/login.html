@@ -16,7 +16,7 @@
             {% endif %}
         </div>
         <div class="right floated seven wide column">
-            <div class="ui middle aligned">
+            <div class="ui middle aligned login">
                 <form method="post" action="{% url 'django.contrib.auth.views.login' %}">
                     {% csrf_token %}
                     <div class="ui mini labeled input">
@@ -44,7 +44,7 @@
 {% endblock %}
 
 {% block body %}
-    <div class="ui blue inverted segment" style="margin-top:42px;">
+    <div class="ui blue inverted segment login-hero" style="margin: 42px 0 0 0;padding: 0 0 42px 0;">
         <div class="container">
             <h1>Elasticluster</h1>
             <div class="sub header">
