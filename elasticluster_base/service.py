@@ -18,13 +18,15 @@
 __author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>'
 
 from ConfigParser import ConfigParser
+from datetime import datetime
 import hashlib
 import os
 import shlex
 from subprocess import Popen
 
 from elasticluster_web import settings
-from elasticluster_base.models import Cluster, ClusterNodeGroup
+from elasticluster_base.models import Cluster, ClusterNodeGroup, ClusterLog
+import elasticluster_base.tasks as tasks
 
 
 class UserService(object):
@@ -73,7 +75,8 @@ class UserService(object):
         ssh_path = os.path.join(home_path, 'ssh')
         if not os.path.exists(ssh_path):
             os.makedirs(ssh_path)
-            key_path = os.path.join(ssh_path, 'elasticluster')
+            key_name = self._get_key_name()
+            key_path = os.path.join(ssh_path, key_name)
             args = shlex.split('ssh-keygen -b 2048 -t rsa -q -N "" -f ')
             args.append(key_path)
             # todo: exception handling
@@ -97,7 +100,13 @@ class UserService(object):
             self.create_user_home(home_path)
 
     def get_config_path(self):
-        return os.path.join(self.get_home_path(), UserService.CONFIG_PATH, UserService.CONFIG_PATH)
+        self.create_user_home()
+        return os.path.join(self.get_home_path(), UserService.CONFIG_PATH,
+                            UserService.CONFIG_PATH)
+
+    def get_storage_path(self):
+        self.create_user_home()
+        return os.path.join(self.get_home_path(), 'storage')
 
     def _get_user_identifier(self):
         """
@@ -109,6 +118,9 @@ class UserService(object):
         hasher.update(self.user.username)
         return hasher.hexdigest()
 
+    def _get_key_name(self):
+        return 'elasticluster-%s' % self.user.username
+
     def get_ssh_keys(self):
         """
         Gets the ssh keys for the given user.
@@ -116,16 +128,19 @@ class UserService(object):
                  'user_key_private' entries, where public and private hold
                  the path
         """
+        self.create_user_home()
         home = self.get_home_path()
         ssh_path = os.path.join(home, 'ssh')
+        username = self.user.username
+        key_name = self._get_key_name()
         key = dict()
-        key['user_key_private'] = os.path.join(ssh_path, 'elasticluster')
-        key['user_key_public'] = os.path.join(ssh_path, 'elasticluster.pub')
-        key['user_key_name'] = 'elasticluster'
+        key['user_key_private'] = os.path.join(ssh_path, key_name)
+        key['user_key_public'] = os.path.join(ssh_path, '%s.pub' % key_name)
+        key['user_key_name'] = key_name
         return key
 
 
-class ElasticlusterProxy(object):
+class ElasticlusterAdapter(object):
     """
     Proxy class to enable easy access to elasticluster. The goal of this class
     is to abstract every interaction with elasticluster, since there will be
@@ -139,13 +154,26 @@ class ElasticlusterProxy(object):
         """
         self.user_service = user_service
 
-    def start_cluster(self, cluster, nodes):
+    def start_cluster(self, cluster):
         """
-        todo: Starts a cluster
+        Starts a cluster using elasticluster.
+        :param cluster: cluster to start
+        :type cluster: `elasticluster_base.models.Cluster`
+        :return: log object to track the state
         """
-        pass
+        config = self._create_config()
+        storage_path = self.user_service.get_storage_path()
+        log = ClusterLog()
+        log.cluster = cluster
+        log.date = datetime.now()
+        log.title = "Starting cluster `%s`" % cluster.name
+        log.status = Cluster.STATUS_STARTING
+        log.save()
+        tasks.start_cluster.delay(cluster, config, storage_path, log)
 
-    def create_config(self):
+        return log
+
+    def _create_config(self):
         """
         The command line elasticluster interfaces needs a configuration file
         in order to start a cluster. This method will create a configuration
@@ -163,7 +191,7 @@ class ElasticlusterProxy(object):
             cloud_section = 'cloud/%s' % cloud.cloud_service.name
             if not config.has_section(cloud_section):
                 config.add_section(cloud_section)
-                config.set(cloud_section, 'provider', cloud.cloud_service.name)
+                config.set(cloud_section, 'provider', cloud.cloud_service.provider)
                 config.set(cloud_section, 'ec2_url', cloud.cloud_service.url)
                 config.set(cloud_section, 'ec2_access_key',
                            cloud.ec2_access_key)
@@ -178,15 +206,15 @@ class ElasticlusterProxy(object):
             if not config.has_section(login_section):
                 config.add_section(login_section)
                 keys = self.user_service.get_ssh_keys()
-                config.set(login_section, 'image_user', '??')
+                config.set(login_section, 'image_user', cluster.image_user)
                 config.set(login_section, 'image_user_sudo', 'root')
                 config.set(login_section, 'image_sudo', 'True')
                 config.set(login_section, 'user_key_name',
                            keys['user_key_name'])
                 config.set(login_section, 'user_key_private',
-                           keys['user_key_public'])
-                config.set(login_section, 'user_key_public',
                            keys['user_key_private'])
+                config.set(login_section, 'user_key_public',
+                           keys['user_key_public'])
 
             # write cluster section
             cluster_section = 'cluster/%s' % (cluster.name)
@@ -197,6 +225,7 @@ class ElasticlusterProxy(object):
                 config.set(cluster_section, 'login', '%s-%s' \
                                 % (user.username, cloud.cloud_service.name))
                 config.set(cluster_section, 'setup_provider', setup_provider)
+                config.set(cluster_section, 'flavor', cluster.flavor)
                 config.set(cluster_section, 'security_group',
                            cluster.security_group)
                 config.set(cluster_section, 'image_id', cluster.image)

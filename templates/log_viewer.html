@@ -1,0 +1,25 @@
+{% extends 'layout.html' %}
+{% load widget_tweaks %}
+
+
+{% block title %}Log Viewer{% endblock %}
+
+{% block content %}
+    <h1>{{ log.title }}</h1>
+
+    <div class="ui raised segment" ng-controller="LogViewerCtrl">
+        <div ng-init="log_id={{ log.id }}"></div>
+        <div class="ui ribbon label">{{ log.date }}</div>
+        <div ng-show="log_show">
+            {% if log.log %}
+                <pre>{{ log.log }}</pre>
+            {% else %}
+                <div class="ui ribbon green label">
+                    Waiting for Task
+                    <i class="loading icon"></i>
+                </div>
+            {% endif %}
+        </div>
+        <pre>{[ log ]}</pre>
+    </div>
+{% endblock %}

@@ -2,7 +2,7 @@
 *.pot
 *.pyc
 local_settings.py
-/elasticluster_web/hosts/host_nicolasmac.py
+/elasticluster_web/hosts/host_*.py
 .idea
 *.iml
 /elasticluster-web/user_home

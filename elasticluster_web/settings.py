@@ -1,4 +1,6 @@
 # Django settings for elasticluster_web project.
+
+import djcelery
 import os
 import socket
 
@@ -37,7 +39,7 @@ ALLOWED_HOSTS = []
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
 # In a Windows environment this must be set to your system time zone.
-TIME_ZONE = 'America/Chicago'
+TIME_ZONE = 'Europe/Zurich'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
@@ -101,6 +103,10 @@ TEMPLATE_LOADERS = (
 #     'django.template.loaders.eggs.Loader',
 )
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.contrib.auth.context_processors.auth',
+)
+
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -133,6 +139,9 @@ INSTALLED_APPS = (
     # Database migration tool
     'south',
     'widget_tweaks',
+    # celery
+    'djcelery',
+    'kombu.transport.django',
 )
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
@@ -165,6 +174,10 @@ LOGGING = {
         },
     }
 }
+
+# celery setup
+djcelery.setup_loader()
+BROKER_URL = 'django://'
 
 
 # Pull in hostname-based changes to enable developers to work with different settings easily.

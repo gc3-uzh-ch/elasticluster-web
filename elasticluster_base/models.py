@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+from django.db.models.fields import IntegerField
+
 __author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>'
 
 from django.contrib.auth.models import User, AbstractUser
@@ -67,6 +69,22 @@ class ClusterNodeGroup(models.Model):
 
 
 class Cluster(models.Model):
+    STATUS_NONE = 0
+    STATUS_STARTING = 10
+    STATUS_STARTED = 11
+    STATUS_STOPPING = 20
+    STATUS_STOPPED = 21
+    STATUS_RESIZING = 30
+    STATUS_ERROR = 100
+    STATUS_CHOICES = (
+        (STATUS_NONE, 'None'),
+        (STATUS_STARTING, 'Starting'),
+        (STATUS_STARTED, 'Started'),
+        (STATUS_STOPPING, 'Stopping'),
+        (STATUS_STOPPED, 'Stopped'),
+        (STATUS_RESIZING, 'Resizing'),
+        (STATUS_ERROR, 'Error'),
+    )
     user = models.ForeignKey(User)
     name = models.CharField(max_length=100)
     cluster_template = models.ForeignKey(ClusterTemplate)
@@ -75,6 +93,7 @@ class Cluster(models.Model):
     image = models.CharField(max_length=100)
     security_group = models.CharField(max_length=100)
     image_user = models.CharField(max_length=100)
+    status = IntegerField(choices=STATUS_CHOICES)
 
     def __unicode__(self):
         return '%s' % self.name
@@ -88,3 +107,14 @@ class ClusterNode(models.Model):
     def __unicode__(self):
         return 'cluster: %s, node_group: %s, value: %s' \
                % (self.cluster.name, self.node_group.name, self.value)
+
+
+class ClusterLog(models.Model):
+    cluster = models.ForeignKey(Cluster)
+    date = models.DateTimeField(auto_now_add=True, blank=True)
+    title = models.CharField(max_length=100)
+    status = models.IntegerField(choices=Cluster.STATUS_CHOICES)
+    log = models.TextField()
+
+    def __unicode__(self):
+        return '%s\t%s\t%s' % (self.cluster.name, self.date, self.title)

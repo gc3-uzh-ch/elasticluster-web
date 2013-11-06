@@ -24,11 +24,11 @@ from django.forms.formsets import formset_factory
 from django.shortcuts import render
 from django.views.generic.base import View
 from django.utils.decorators import method_decorator
-from django.http.response import HttpResponse, Http404
+from django.http.response import HttpResponse, Http404, HttpResponseRedirect
 
 from elasticluster_base.forms import StartClusterTopForm, UserCloudServiceForm
-from elasticluster_base.service import UserService, ElasticlusterProxy
-from elasticluster_base.models import CloudService, ClusterNodeGroup, ClusterTemplate, UserCloudService, Cluster, ClusterNode
+from elasticluster_base.service import UserService, ElasticlusterAdapter
+from elasticluster_base.models import CloudService, ClusterNodeGroup, ClusterTemplate, UserCloudService, Cluster, ClusterNode, ClusterLog
 
 
 def login(request):
@@ -38,9 +38,11 @@ def login(request):
 def index(request):
     user = request.user
     user_service = UserService(user)
-    elasticluster = ElasticlusterProxy(user_service)
-    elasticluster.create_config()
-    context = {}
+    user_service.create_user_home()
+
+    clusters = Cluster.objects.all().filter(user=user)
+
+    context = {'clusters': clusters}
     return render(request, 'index.html', context)
 
 
@@ -76,18 +78,27 @@ class StartCluster(View):
         cluster.image = image
         cluster.security_group = security_group
         cluster.image_user = image_user
+        cluster.status = Cluster.STATUS_NONE
 
         cluster.save()
 
-        node_groups = ClusterNodeGroup.objects.filter(cluster_template__id=cluster_template_id)
+        node_groups = ClusterNodeGroup.objects\
+            .filter(cluster_template__id=cluster_template_id)
+        nodes = list()
         for group in node_groups:
             node = ClusterNode()
             node.node_group = group
             node.value = request.POST[group.ansible_name]
             node.cluster = cluster
             node.save()
+            nodes.append(node)
 
-        return HttpResponse("")
+        # start cluster
+        elasticluster = ElasticlusterAdapter(UserService(request.user))
+        log = elasticluster.start_cluster(cluster)
+
+        return HttpResponseRedirect(reverse('cluster_log_viewer',
+                                            args=(log.id,)))
 
 
 class StartClusterCloudCheck(View):
@@ -144,3 +155,17 @@ class StartClusterNodeOptions(View):
         nodes = ClusterNodeGroup.objects.filter(cluster_template__id=cluster_template_id)
 
         return HttpResponse(serializers.serialize("json", nodes))
+
+
+class ClusterLogViewer(View):
+    @method_decorator(login_required)
+    def dispatch(self, *args, **kwargs):
+        return super(ClusterLogViewer, self).dispatch(*args, **kwargs)
+
+    def get(self, request, log_id):
+        log = ClusterLog.objects.get(id=log_id)
+        if request.is_ajax():
+            return HttpResponse(serializers.serialize('json', [log]))
+        else:
+            context = {'log': log}
+            return render(request, 'log_viewer.html', context)

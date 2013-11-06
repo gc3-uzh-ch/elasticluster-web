@@ -20,7 +20,7 @@ __author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>'
 from django.contrib import admin
 
 from elasticluster_base.models import CloudService, ClusterTemplate, \
-    ClusterNodeGroup, UserCloudService, Cluster, ClusterNode
+    ClusterNodeGroup, UserCloudService, Cluster, ClusterNode, ClusterLog
 
 
 admin.site.register(CloudService)
@@ -29,3 +29,4 @@ admin.site.register(ClusterNodeGroup)
 admin.site.register(UserCloudService)
 admin.site.register(Cluster)
 admin.site.register(ClusterNode)
+admin.site.register(ClusterLog)

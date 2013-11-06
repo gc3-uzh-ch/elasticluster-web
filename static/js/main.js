@@ -89,7 +89,39 @@ function StartClusterCtrl($scope, $http, $templateCache) {
 
 }
 
+/**
+ *
+ * @param $scope
+ * @param $http
+ * @param $templateCache
+ * @constructor
+ */
+function LogViewerCtrl($scope, $http, $timeout) {
+    $scope.log_show = true
 
+    // Function to get the data
+    $scope.getData = function(){
+        $http.get('/cluster/log/viewer/' + $scope.log_id)
+            .success(function(data, status, headers, config) {
+                log = data[0].fields.log
+                if (log){
+                    $scope.log_show = false
+                    $scope.log = log
+                }
+            });
+    };
+
+    // Function to replicate setInterval using $timeout service.
+    $scope.intervalFunction = function(){
+        $timeout(function() {
+            $scope.getData();
+            $scope.intervalFunction();
+        }, 5000)
+    };
+
+    // Kick off the interval
+    $scope.intervalFunction();
+}
 
 /**
  * Initialises dropdowns (this is needed by semantic-ui).
@@ -115,6 +147,9 @@ angular.module('elasticluster-web', []).config(function($interpolateProvider, $h
         // django csrf implementation compatibility
         $httpProvider.defaults.xsrfCookieName = 'csrftoken';
         $httpProvider.defaults.xsrfHeaderName = 'X-CSRFToken';
+
+        // django is_ajax() compatibility
+        $httpProvider.defaults.headers.common["X-Requested-With"] = 'XMLHttpRequest';
 
         // Use x-www-form-urlencoded tontent-type, so django will recognize data and render it to request.POST
         $httpProvider.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=utf-8';

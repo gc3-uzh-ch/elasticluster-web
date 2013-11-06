@@ -21,7 +21,7 @@ __author__ = 'Nicolas Baer <nicolas.baer@uzh.ch>'
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
 
-from elasticluster_base.views import StartCluster, StartClusterCloudCheck, CloudServiceCredentials, StartClusterNodeOptions
+from elasticluster_base.views import StartCluster, StartClusterCloudCheck, CloudServiceCredentials, StartClusterNodeOptions, ClusterLogViewer
 
 admin.autodiscover()
 
@@ -45,5 +45,7 @@ urlpatterns = patterns('',
     url(r'^start/cloud/cred/(?P<cloud_id>\d+)$', CloudServiceCredentials.as_view(), name="cloud_cred_form"),
     url(r'^start/cloud/cluster_type/(?P<cluster_template_id>\d+)$', StartClusterNodeOptions.as_view(), name="cluster_node_options"),
 
+    # log
+    url(r'^cluster/log/viewer/(?P<log_id>\d+)$', ClusterLogViewer.as_view(), name="cluster_log_viewer")
 
 )

@@ -6,4 +6,41 @@
 {% block content %}
     <h1>Dashboard</h1>
     <p>Welcome to the elasticluster web interface.</p>
+
+    <h2>Clusters</h2>
+    {% if clusters %}
+    <div class="">
+        Here's a list with all your clusters:
+    </div>
+    <table class="ui table segment">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Nodes</th>
+        </tr>
+        </thead>
+        {% for cluster in clusters %}
+            <tbody>
+            <tr>
+                <td>{{ cluster.name }}</td>
+                <td>{{ cluster.cluster_template.name }}</td>
+                <td>{{ cluster.get_status_display }}</td>
+                <td>
+                    {% for node in cluster.clusternode_set.all %}
+                        <div class="ui blue circular label">
+                            {{ node.node_group.name }}
+                            <div class="detail">{{ node.value }}</div>
+                        </div>
+                    {% endfor %}
+                </td>
+                <td><a href="">Show Details</a></td>
+            </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <div class="ui yellow message">No clusters started yet,
+            <a href="{% url 'start' %}">start one</a> when you're ready.</div>
+    {% endif %}
 {% endblock %}
